@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="IPL Pulse Admin Operations Center - Real-time venue management, staff coordination, and incident response.">
+    <title>IPL Pulse | Admin Operations Center</title>
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            background: #050505;
+        }
+
+        .admin-layout {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .admin-sidebar {
+            width: 260px;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 20px;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .admin-view {
+            display: none;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .admin-view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .zone-card {
+            display: block;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .zone-card.critical {
+            border-left: 4px solid var(--google-red);
+            background: rgba(234, 67, 53, 0.1);
+        }
+
+        .zone-card.safe {
+            border-left: 4px solid var(--google-green);
+        }
+
+        .zone-card.warning {
+            border-left: 4px solid var(--google-yellow);
+            background: rgba(251, 188, 4, 0.1);
+        }
+
+        .staff-count {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .metrics-grid .stat-card {
+            padding: 20px;
+        }
+
+        .pulse-red {
+            animation: emergency-pulse 1.5s infinite;
+        }
+
+        @keyframes emergency-pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(234, 67, 53, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(234, 67, 53, 0);
+            }
+        }
+
+        .log-box {
+            height: 220px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 12px;
+            padding: 15px;
+            font-family: 'Space Grotesk', monospace;
+            overflow-y: auto;
+            font-size: 0.82rem;
+            color: #8ab6ff;
+            border: 1px solid rgba(66, 133, 244, 0.2);
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 5px;
+        }
+
+        .log-time {
+            color: #555;
+            margin-right: 10px;
+        }
+
+        /* Incident Table */
+        .incident-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .incident-table th {
+            text-align: left;
+            padding: 12px 15px;
+            color: #888;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .incident-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.9rem;
+        }
+
+        .incident-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .severity-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .severity-high {
+            background: rgba(234, 67, 53, 0.2);
+            color: #ea4335;
+        }
+
+        .severity-medium {
+            background: rgba(251, 188, 4, 0.2);
+            color: #fbbc04;
+        }
+
+        .severity-low {
+            background: rgba(52, 168, 83, 0.2);
+            color: #34a853;
+        }
+
+        .status-active {
+            color: #ea4335;
+        }
+
+        .status-responding {
+            color: #fbbc04;
+        }
+
+        .status-resolved {
+            color: #34a853;
+        }
+
+        /* Concession Cards */
+        .concession-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .concession-card {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.3s;
+        }
+
+        .concession-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-2px);
+        }
+
+        .queue-bar-track {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .queue-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1s ease;
+        }
+
+        .stock-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.85rem;
+        }
+
+        .stock-level {
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .stock-good {
+            background: rgba(52, 168, 83, 0.2);
+            color: #34a853;
+        }
+
+        .stock-low {
+            background: rgba(251, 188, 4, 0.2);
+            color: #fbbc04;
+        }
+
+        .stock-out {
+            background: rgba(234, 67, 53, 0.2);
+            color: #ea4335;
+        }
+
+        /* Emergency */
+        .evac-zone {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .evac-zone:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .evac-zone.zone-green {
+            border-left-color: var(--google-green);
+        }
+
+        .evac-zone.zone-yellow {
+            border-left-color: var(--google-yellow);
+        }
+
+        .evac-zone.zone-red {
+            border-left-color: var(--google-red);
+        }
+
+        .emergency-status-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 24px;
+            border-radius: 14px;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        .emergency-normal {
+            background: rgba(52, 168, 83, 0.1);
+            border: 1px solid rgba(52, 168, 83, 0.3);
+            color: var(--google-green);
+        }
+
+        .emergency-alert {
+            background: rgba(234, 67, 53, 0.15);
+            border: 1px solid rgba(234, 67, 53, 0.4);
+            color: var(--google-red);
+            animation: emergency-pulse 1.5s infinite;
+        }
+
+        .service-card {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            padding: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            text-align: center;
+        }
+
+        .service-card h4 {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .response-time {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 5px 0;
+        }
+
+        /* Fill rate chart */
+        .fill-rate-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            height: 120px;
+            padding: 10px 0;
+        }
+
+        .fill-bar {
+            flex: 1;
+            border-radius: 4px 4px 0 0;
+            transition: height 1s ease, background 0.5s;
+            min-width: 8px;
+        }
+
+        /* PA */
+        .pa-card {
+            background: rgba(66, 133, 244, 0.08);
+            border: 1px solid rgba(66, 133, 244, 0.2);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 10px;
+        }
+
+        .pa-card .pa-time {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .pa-card .pa-type {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 8px;
+            background: rgba(66, 133, 244, 0.2);
+            color: #8ab6ff;
+            margin-left: 8px;
+        }
+
+        .btn-primary {
+            background: var(--google-blue);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .btn-primary:hover {
+            background: #3367d6;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: var(--google-red);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .btn-danger:hover {
+            background: #c5221f;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .system-health {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .health-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .health-value {
+            color: var(--google-green);
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title .badge-count {
+            background: rgba(234, 67, 53, 0.2);
+            color: #ea4335;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-layout">
+        <aside class="admin-sidebar glass">
+            <div class="logo" style="margin-bottom: 30px;">
+                <span class="i">I</span><span class="p">P</span><span class="l">L</span> <span class="pulse"
+                    style="color:var(--google-red)">ADMIN</span>
+            </div>
+            <button class="nav-item active" id="btn-dispatcher" onclick="switchAdminView('dispatcher')"><i
+                    class="icon-dashboard"></i><span>AI Dispatcher</span></button>
+            <button class="nav-item" id="btn-incidents" onclick="switchAdminView('incidents')"><i
+                    class="icon-queue"></i><span>Incidents</span></button>
+            <button class="nav-item" id="btn-concessions" onclick="switchAdminView('concessions')"><i
+                    class="icon-wallet"></i><span>Concessions</span></button>
+            <button class="nav-item" id="btn-safety" onclick="switchAdminView('safety')"><i
+                    class="icon-map"></i><span>Safety & Emergency</span></button>
+
+            <div class="sidebar-footer">
+                <div class="system-health">
+                    <div class="health-item"><span>Sensors</span><span class="health-value"
+                            id="sensor-count">847/850</span></div>
+                    <div class="health-item"><span>Cameras</span><span class="health-value"
+                            id="camera-count">120/124</span></div>
+                    <div class="health-item"><span>Latency</span><span class="health-value" id="latency-val">23ms</span>
+                    </div>
+                    <div class="health-item"><span>Uptime</span><span class="health-value">99.7%</span></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="admin-main">
+            <!-- ==================== AI DISPATCHER VIEW ==================== -->
+            <section id="view-dispatcher" class="admin-view active">
+                <header
+                    style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>AI Crowd Dispatcher</h1>
+                        <p style="color: #aaa;">Autonomous Staff Re-allocation & Crowd Load Balancer</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.85rem; color: #aaa;">Total Active Staff</div>
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--google-blue);" id="total-staff">45
+                        </div>
+                    </div>
+                </header>
+
+                <div class="metrics-grid">
+                    <div class="stat-card glass" id="global-status-card">
+                        <h3>Global Status</h3>
+                        <h2 style="color: var(--google-green);" id="global-status">Stable</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">All zones within safety limits</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Peak Density Zone</h3>
+                        <h2 id="peak-zone">Gate 3</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;" id="peak-density">Currently at 82% capacity</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Active Re-routes</h3>
+                        <h2 id="active-reroutes">0</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">User app navigation overrides</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>PA Announcements</h3>
+                        <h2 id="pa-count">0</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">Auto + Manual broadcasts</p>
+                    </div>
+                </div>
+
+                <!-- Fill Rate Chart -->
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 25px;">
+                    <div class="stat-card glass" style="padding: 20px;">
+                        <div class="section-title">Venue Occupancy Fill Rate (Last 30 min)</div>
+                        <div class="fill-rate-container" id="fill-rate-chart"></div>
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #555; margin-top: 5px;">
+                            <span>-30 min</span><span>-20 min</span><span>-10 min</span><span>Now</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass" style="padding: 20px;">
+                        <div class="section-title">Auto PA Messages</div>
+                        <div id="pa-messages-list">
+                            <div class="pa-card"><span class="pa-time">21:12</span><span class="pa-type">AUTO</span>
+                                <p style="margin-top:6px; font-size:0.85rem;">Gate C congestion detected. Rerouting to
+                                    Gate D.</p>
+                            </div>
+                            <div class="pa-card"><span class="pa-time">20:58</span><span class="pa-type">AUTO</span>
+                                <p style="margin-top:6px; font-size:0.85rem;">Concession Stand 4: Queue exceeds 10 min
+                                    threshold.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 25px;">
+                    <div>
+                        <div class="section-title">Live Zone Allocation</div>
+                        <div id="zones-container"></div>
+                    </div>
+                    <div>
+                        <div class="section-title">System Action Log</div>
+                        <div class="log-box glass" id="system-log">
+                            <div class="log-entry"><span class="log-time">System Startup</span> Initialization complete.
+                                45 staff online.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== INCIDENTS VIEW ==================== -->
+            <section id="view-incidents" class="admin-view">
+                <header
+                    style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>Incident Management</h1>
+                        <p style="color: #aaa;">Real-time incident tracking & response coordination</p>
+                    </div>
+                    <button class="btn-primary" onclick="createIncident()">+ Report Incident</button>
+                </header>
+
+                <div class="metrics-grid">
+                    <div class="stat-card glass">
+                        <h3>Open Incidents</h3>
+                        <h2 style="color: var(--google-red);" id="open-incidents">2</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">1 active · 1 responding</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Avg Response Time</h3>
+                        <h2 id="avg-response">3.2 <span
+                                style="font-size:1rem; font-weight:normal; color:#aaa;">min</span></h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">Target: < 5 min</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Resolved Today</h3>
+                        <h2 style="color: var(--google-green);" id="resolved-incidents">7</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">Avg resolution: 8 min</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Staff On Standby</h3>
+                        <h2 id="standby-staff">12</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">Ready for immediate dispatch</p>
+                    </div>
+                </div>
+
+                <div class="section-title">Active Incident Log <span class="badge-count" id="incident-badge">2</span>
+                </div>
+                <div
+                    style="background: rgba(255,255,255,0.03); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06);">
+                    <table class="incident-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Type</th>
+                                <th>Location</th>
+                                <th>Severity</th>
+                                <th>Status</th>
+                                <th>Time</th>
+                                <th>Assigned</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incident-table-body">
+                            <tr>
+                                <td>#INC-042</td>
+                                <td>Crowd Surge</td>
+                                <td>Gate C — North</td>
+                                <td><span class="severity-badge severity-high">HIGH</span></td>
+                                <td><span class="status-active">● Active</span></td>
+                                <td>21:14</td>
+                                <td>Team Alpha</td>
+                            </tr>
+                            <tr>
+                                <td>#INC-041</td>
+                                <td>Medical</td>
+                                <td>Section 22 Row D</td>
+                                <td><span class="severity-badge severity-medium">MEDIUM</span></td>
+                                <td><span class="status-responding">● Responding</span></td>
+                                <td>21:08</td>
+                                <td>Med Unit 3</td>
+                            </tr>
+                            <tr>
+                                <td>#INC-040</td>
+                                <td>Spill Hazard</td>
+                                <td>Concourse West</td>
+                                <td><span class="severity-badge severity-low">LOW</span></td>
+                                <td><span class="status-resolved">● Resolved</span></td>
+                                <td>20:52</td>
+                                <td>Maint. Crew 2</td>
+                            </tr>
+                            <tr>
+                                <td>#INC-039</td>
+                                <td>Unattended Bag</td>
+                                <td>Gate B Entrance</td>
+                                <td><span class="severity-badge severity-medium">MEDIUM</span></td>
+                                <td><span class="status-resolved">● Resolved</span></td>
+                                <td>20:41</td>
+                                <td>Security Bravo</td>
+                            </tr>
+                            <tr>
+                                <td>#INC-038</td>
+                                <td>Fight / Altercation</td>
+                                <td>Section 15</td>
+                                <td><span class="severity-badge severity-high">HIGH</span></td>
+                                <td><span class="status-resolved">● Resolved</span></td>
+                                <td>20:33</td>
+                                <td>Security Alpha</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Staff Deployment Map -->
+                <div style="margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <div class="section-title">Staff Deployment Map</div>
+                        <div class="stat-card glass" style="padding: 18px;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <span style="font-weight: 600;">🛡️ Security Lead</span>
+                                <span style="font-size: 0.8rem; color: #aaa;">Gate C · Security HQ</span>
+                            </div>
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <span style="font-weight: 600;">🍔 Concessions Mgr</span>
+                                <span style="font-size: 0.8rem; color: #aaa;">Food Hall W · Stand 4</span>
+                            </div>
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <span style="font-weight: 600;">⚙️ Venue Ops</span>
+                                <span style="font-size: 0.8rem; color: #aaa;">VOC · Gate D · Concourse N</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600;">🏥 Medical Team</span>
+                                <span style="font-size: 0.8rem; color: #aaa;">First Aid E · First Aid W</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="section-title">Role-Based Access</div>
+                        <div class="stat-card glass" style="padding: 18px;">
+                            <div style="margin-bottom: 12px;">
+                                <span style="font-weight: 600; color: var(--google-blue);">Venue Ops Manager</span>
+                                <p style="font-size: 0.78rem; color: #aaa; margin-top: 3px;">Full heatmap · All alerts ·
+                                    Staff deploy · PA system</p>
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <span style="font-weight: 600; color: var(--google-red);">Security Lead</span>
+                                <p style="font-size: 0.78rem; color: #aaa; margin-top: 3px;">Security zones · Incident
+                                    queue · Gate status · CCTV</p>
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <span style="font-weight: 600; color: var(--google-yellow);">Concessions Mgr</span>
+                                <p style="font-size: 0.78rem; color: #aaa; margin-top: 3px;">Queue depths · Inventory ·
+                                    Staff allocation · Forecast</p>
+                            </div>
+                            <div>
+                                <span style="font-weight: 600; color: var(--google-green);">Medical Team</span>
+                                <p style="font-size: 0.78rem; color: #aaa; margin-top: 3px;">Incident map · AED
+                                    locations · Emergency routes</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== CONCESSIONS VIEW ==================== -->
+            <section id="view-concessions" class="admin-view">
+                <header style="margin-bottom: 25px;">
+                    <h1>Concessions & Retail</h1>
+                    <p style="color: #aaa;">Queue prediction · Pre-ordering · Demand forecasting</p>
+                </header>
+
+                <div class="metrics-grid">
+                    <div class="stat-card glass">
+                        <h3>Avg Queue Wait</h3>
+                        <h2 id="avg-queue-wait">6.4 <span
+                                style="font-size:1rem; font-weight:normal; color:#aaa;">min</span></h2>
+                        <p style="font-size: 0.78rem; color: var(--google-yellow);">Target: < 4 min</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Pre-Orders Today</h3>
+                        <h2 id="preorder-count">2,430</h2>
+                        <p style="font-size: 0.78rem; color: var(--google-green);">₹8.2L revenue</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Locker Pickups</h3>
+                        <h2 id="locker-count">820</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">21.6% of all orders</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Stockout Alerts</h3>
+                        <h2 style="color: var(--google-red);" id="stockout-count">2</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">Biryani · Craft Beer</p>
+                    </div>
+                </div>
+
+                <div class="section-title">Stand Queue Status — Live</div>
+                <div class="concession-grid" id="concession-stands"></div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                    <div>
+                        <div class="section-title">Top Items — Stock Level</div>
+                        <div class="stat-card glass" style="padding: 18px;" id="stock-levels">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="section-title">Pre-Order Locker Banks</div>
+                        <div class="stat-card glass" style="padding: 18px;" id="locker-banks">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px;">
+                    <div class="section-title">Concession KPIs</div>
+                    <div class="metrics-grid">
+                        <div class="stat-card glass" style="text-align:center;">
+                            <h3 style="font-size: 0.8rem;">Avg Wait Time</h3>
+                            <h2 style="color: var(--google-yellow);" id="kpi-wait">6.4 min</h2>
+                            <p style="font-size:0.7rem; color:#aaa;">Target: < 4 min</p>
+                        </div>
+                        <div class="stat-card glass" style="text-align:center;">
+                            <h3 style="font-size: 0.8rem;">Pre-Order Rate</h3>
+                            <h2 style="color: var(--google-green);">28.4%</h2>
+                            <p style="font-size:0.7rem; color:#aaa;">Target: > 30%</p>
+                        </div>
+                        <div class="stat-card glass" style="text-align:center;">
+                            <h3 style="font-size: 0.8rem;">Forecast Accuracy</h3>
+                            <h2 style="color: var(--google-blue);">91%</h2>
+                            <p style="font-size:0.7rem; color:#aaa;">Target: > 85%</p>
+                        </div>
+                        <div class="stat-card glass" style="text-align:center;">
+                            <h3 style="font-size: 0.8rem;">Revenue / Attendee</h3>
+                            <h2 style="color: var(--google-green);">₹520</h2>
+                            <p style="font-size:0.7rem; color:#aaa;">Target: > ₹400</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== SAFETY & EMERGENCY VIEW ==================== -->
+            <section id="view-safety" class="admin-view">
+                <header
+                    style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>Safety & Emergency</h1>
+                        <p style="color: #aaa;">Evacuation protocols · Anomaly detection · Emergency services</p>
+                    </div>
+                    <button class="btn-danger" id="evac-btn" onclick="toggleEvacuation()">🚨 Trigger Evacuation</button>
+                </header>
+
+                <div class="emergency-status-bar emergency-normal" id="emergency-bar">
+                    <span style="font-size: 1.2rem;">✅</span>
+                    <span>System Status: NORMAL — No Active Emergency</span>
+                    <span style="margin-left: auto; font-size: 0.8rem; opacity: 0.7;">All emergency services connected ·
+                        Evacuation routes pre-loaded</span>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="stat-card glass">
+                        <h3>Evacuation Time Est.</h3>
+                        <h2>8 <span style="font-size:1rem; font-weight:normal; color:#aaa;">min</span></h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">Full venue clearance</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>AED Locations</h3>
+                        <h2 style="color: var(--google-green);">42</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">All accessible</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Anomalies Detected</h3>
+                        <h2 id="anomaly-count">3</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">2 resolved · 1 open</p>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Emergency Staff</h3>
+                        <h2>28</h2>
+                        <p style="font-size: 0.78rem; color: #aaa;">Security + Medical</p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
+                    <div>
+                        <div class="section-title">Evacuation Zone Plan</div>
+                        <div id="evac-zones">
+                            <div class="evac-zone zone-green">
+                                <div><strong>Section 1–10</strong>
+                                    <p style="font-size:0.78rem; color:#aaa;">Exit: Gate A — North · 8,500 attendees</p>
+                                </div><span style="color:var(--google-green); font-weight:600;">ETA 4 min</span>
+                            </div>
+                            <div class="evac-zone zone-green">
+                                <div><strong>Section 11–20</strong>
+                                    <p style="font-size:0.78rem; color:#aaa;">Exit: Gate B — North · 8,400 attendees</p>
+                                </div><span style="color:var(--google-green); font-weight:600;">ETA 5 min</span>
+                            </div>
+                            <div class="evac-zone zone-yellow">
+                                <div><strong>Section 21–30</strong>
+                                    <p style="font-size:0.78rem; color:#aaa;">Exit: Gate C — East · 8,200 attendees</p>
+                                </div><span style="color:var(--google-yellow); font-weight:600;">ETA 7 min</span>
+                            </div>
+                            <div class="evac-zone zone-green">
+                                <div><strong>Section 31–40</strong>
+                                    <p style="font-size:0.78rem; color:#aaa;">Exit: Gate D — South · 8,300 attendees</p>
+                                </div><span style="color:var(--google-green); font-weight:600;">ETA 5 min</span>
+                            </div>
+                            <div class="evac-zone zone-green">
+                                <div><strong>VIP / Press</strong>
+                                    <p style="font-size:0.78rem; color:#aaa;">Exit: Gate F — VIP · 3,200 attendees</p>
+                                </div><span style="color:var(--google-green); font-weight:600;">ETA 3 min</span>
+                            </div>
+                            <div class="evac-zone zone-red">
+                                <div><strong>Concourses</strong>
+                                    <p style="font-size:0.78rem; color:#aaa;">Exit: All outer exits · 13,000 attendees
+                                    </p>
+                                </div><span style="color:var(--google-red); font-weight:600;">ETA 8 min</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="section-title">Emergency Services</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="service-card">
+                                <h4>🚒 Fire Dept</h4>
+                                <div class="response-time" style="color:var(--google-yellow);">4 min</div>
+                                <p style="font-size:0.75rem; color:#aaa;">Response time</p>
+                            </div>
+                            <div class="service-card">
+                                <h4>👮 Police</h4>
+                                <div class="response-time" style="color:var(--google-green);">On-site</div>
+                                <p style="font-size:0.75rem; color:#aaa;">Event unit</p>
+                            </div>
+                            <div class="service-card">
+                                <h4>🚑 EMS</h4>
+                                <div class="response-time" style="color:var(--google-yellow);">6 min</div>
+                                <p style="font-size:0.75rem; color:#aaa;">Response time</p>
+                            </div>
+                            <div class="service-card">
+                                <h4>🛡️ Security</h4>
+                                <div class="response-time" style="color:var(--google-green);">On-site</div>
+                                <p style="font-size:0.75rem; color:#aaa;">28 active</p>
+                            </div>
+                        </div>
+
+                        <div class="section-title" style="margin-top: 20px;">Anomaly Detection Log</div>
+                        <div class="stat-card glass" style="padding: 15px;" id="anomaly-log">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                                <div><span style="color:var(--google-red);">●</span> Density surge Δ > 4σ</div>
+                                <span style="font-size:0.75rem; color:#aaa;">Section 22 · 21:31</span>
+                            </div>
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                                <div><span style="color:var(--google-yellow);">●</span> Stationary cluster 8 min</div>
+                                <span style="font-size:0.75rem; color:#aaa;">Gate C Ramp · 21:18</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div><span style="color:var(--google-green);">●</span> Velocity drop — crush risk</div>
+                                <span style="font-size:0.75rem; color:#aaa;">Concourse N · 20:55</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="toast-container"></div>
+    <script src="admin.js"></script>
+</body>
+
+</html>

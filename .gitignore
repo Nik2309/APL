@@ -1,0 +1,57 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node (if you ever use npm)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment / secrets
+.env
+.env.*
+*.key
+*.pem
+*.json
+
+# Python (in case backend added later)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+
+# Logs
+logs/
+*.log
+
+# Build / temp files
+dist/
+build/
+.tmp/
+.cache/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Google Cloud
+.gcloud/
+app-engine-*.yaml
+*.log
+
+# Ignore uploaded/static generated files (optional)
+*.sqlite3
+
+# Images (optional – only if you don’t want to track assets)
+# *.png
+# *.jpg
+# *.jpeg
+# *.gif
+
+# Ignore deployment artifacts
+.gcloudignore

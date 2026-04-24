@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPL Pulse | Staff App</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Space Grotesk', sans-serif;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            background-image: radial-gradient(circle at 50% -20%, #1a1a2e 0%, #000 70%);
+        }
+
+        .phone-frame {
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-family: 'Outfit';
+            font-weight: 800;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+            color: #4285F4;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: #34A853;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .current-post {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background: rgba(52, 168, 83, 0.2);
+            color: #34A853;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .alert-card {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ea4335;
+            padding: 40px 20px;
+            text-align: center;
+            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+        }
+
+        .alert-card.active {
+            top: 0;
+        }
+
+        .alert-icon {
+            font-size: 4rem;
+            animation: shake 0.5s infinite;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            50% {
+                transform: translateX(5px);
+            }
+
+            75% {
+                transform: translateX(-5px);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
+        }
+
+        .btn {
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 1.1rem;
+            width: 100%;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-black {
+            background: #000;
+            color: #fff;
+            margin-top: 30px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-black:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="phone-frame">
+        <div class="header">
+            <h1>PULSE<span style="color:#fff;">STAFF</span></h1>
+            <div class="profile">
+                <div class="avatar">SJ</div>
+            </div>
+        </div>
+
+        <div class="current-post">
+            <div class="status-badge">● ACTIVE DUTY</div>
+            <p style="color: #aaa; font-size: 0.9rem; text-transform: uppercase;">Current Assignment</p>
+            <h2 style="font-size: 2rem; margin: 10px 0;" id="current-zone">VIP Entrance</h2>
+            <p style="color: #34A853;">Area is secure and calm.</p>
+        </div>
+
+        <div
+            style="background: rgba(66, 133, 244, 0.1); border: 1px solid rgba(66, 133, 244, 0.3); border-radius: 15px; padding: 15px;">
+            <p style="color: #8ab6ff; font-size: 0.85rem; display: flex; align-items: center; gap: 8px;">
+                <span class="icon-pulse">⚡</span> Connected to Crowd AI
+            </p>
+        </div>
+
+        <!-- Hidden Alert Cover -->
+        <div class="alert-card" id="alert-ui">
+            <div class="alert-icon">🚨</div>
+            <h2 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 10px;">URGENT DISPATCH</h2>
+            <p style="font-size: 1.1rem; opacity: 0.9;">AI detected severe overcrowding.</p>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 25px; border-radius: 15px; margin: 30px 0;">
+                <p style="font-size: 0.9rem; opacity: 0.8; text-transform: uppercase;">Move Immediately To</p>
+                <h1 style="font-size: 2.8rem; color: #fff; margin-top: 5px;" id="target-zone">Gate 3 Exit</h1>
+            </div>
+
+            <button class="btn btn-black" onclick="acceptDispatch()">Acknowledge & Route</button>
+        </div>
+    </div>
+
+    <script>
+        const uiAlert = document.getElementById('alert-ui');
+        const targetZoneEl = document.getElementById('target-zone');
+        const currentZoneEl = document.getElementById('current-zone');
+        let lastOrderTimestamp = 0;
+
+        function checkDispatchOrders() {
+            const data = localStorage.getItem('staffRelocationOrder');
+            if (data) {
+                const order = JSON.parse(data);
+
+                // If this is a completely new order, process it
+                if (order.timestamp > lastOrderTimestamp) {
+                    lastOrderTimestamp = order.timestamp;
+
+                    // Demo self-healing: always position the guard exactly where the AI wants to pull from 
+                    // so the showcase triggers 100% of the time, beautifully.
+                    if (!uiAlert.classList.contains('active')) {
+                        currentZoneEl.innerText = order.from;
+                    }
+
+                    // Trigger Alert
+                    targetZoneEl.innerText = order.to;
+                    uiAlert.classList.add('active');
+
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 500]);
+                }
+            }
+        }
+
+        // Poll every 500ms instead of relying on fragile cross-tab events
+        setInterval(checkDispatchOrders, 500);
+
+        function acceptDispatch() {
+            uiAlert.classList.remove('active');
+            currentZoneEl.innerText = targetZoneEl.innerText;
+            // No need to clear local storage, timestamp logic handles duplicates
+        }
+    </script>
+</body>
+
+</html>

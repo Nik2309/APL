@@ -1,0 +1,34 @@
+runtime: python312
+
+handlers:
+- url: /admin
+  static_files: admin.html
+  upload: admin\.html
+
+- url: /staff
+  static_files: staff.html
+  upload: staff\.html
+
+- url: /(.*\.css)
+  static_files: \1
+  upload: .*\.css
+
+- url: /(.*\.js)
+  static_files: \1
+  upload: .*\.js
+
+- url: /(.*\.png)
+  static_files: \1
+  upload: .*\.png
+
+- url: /(.*\.html)
+  static_files: \1
+  upload: .*\.html
+
+- url: /
+  static_files: index.html
+  upload: index\.html
+
+- url: /(.*)
+  static_files: \1
+  upload: (.*)
